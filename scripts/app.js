@@ -10,6 +10,7 @@ Cesium.Ion.defaultAccessToken = CESIUM_TOKEN;
 let viewer = null; 
 let last_pos = null; 
 let current_entity = null; 
+let positionSampler = null; 
 
 async function startCesiumApp(id){
   viewer = new Cesium.Viewer('cesiumContainer', {
@@ -20,7 +21,25 @@ async function startCesiumApp(id){
   const first_pos = await aprs_get_pos(id); 
   console.log("first_pos: ", first_pos); 
 
-  const position = Cesium.Cartesian3.fromDegrees(first_pos.long, first_pos.lat, first_pos.height); 
+  const cart_positions = [Cesium.Cartographic.fromDegrees(first_pos.long, first_pos.lat)]; 
+  const height_samples = await Cesium.sampleTerrainMostDetailed(viewer.terrainProvider, [cart_positions]);
+  const height = height_samples[0].height; 
+
+  const position = Cesium.Cartesian3.fromDegrees(first_pos.long, first_pos.lat, height); 
+  positionSampler = new Cesium.SampledPositionProperty(); 
+
+
+  let start = Cesium.JulianDate.fromDate(new Date(first_pos.lasttime)); 
+  let stop =  Cesium.JulianDate.fromDate(new Date(first_pos.lasttime+1)); 
+  positionSampler.addSample(
+    start,
+    position
+  );
+
+  positionSampler.addSample(
+    stop,
+    position
+  );
 
   const heading = Cesium.Math.toRadians(135);
   const pitch = 0;
@@ -38,7 +57,7 @@ async function startCesiumApp(id){
 
   current_entity = viewer.entities.add({
     name: "Balloon",
-    position: position,
+    position: positionSampler,
     orientation: orientation, 
     model: {
       uri: "../models/CesiumBalloonKTX2.glb",
@@ -87,6 +106,11 @@ async function update() {
     point: { pixelSize: 10, color: Cesium.Color.YELLOW }
   });
 
+  positionSampler.addSample(
+    Cesium.JulianDate.fromDate(new Date(pos.lasttime)),
+    position
+  );
+
   // const lineBetween = viewer.entities.add({
   //   name: "Purple straight arrow at height",
   //   polyline: {
@@ -99,7 +123,7 @@ async function update() {
   //   },
   // });
 
-  current_entity.position = position; 
+  // current_entity.position = position; 
 
   viewer.flyTo(pointEntity); 
 
