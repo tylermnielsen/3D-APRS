@@ -19,20 +19,28 @@ export async function aprs_get_pos(id){
   let res_lat = parseFloat(result.entries[0].lat); 
   let res_long = parseFloat(result.entries[0].lng); 
   let res_alt = result.entries[0].altitude; 
-  let height = 1; 
-  if(res_alt == null){
-    res_alt = 1; 
-    height = 1; 
-  }
-  else {
-    const terrainProvider = await Cesium.createWorldTerrainAsync(); 
-    const generic_pos = [
-      Cesium.Cartographic.fromDegrees(first_pos.long, first_pos.lat, 0)
-    ]; 
+  let res_lasttime = result.entries[0].lasttime * 1000; // * 1000 to work with new Date(milliseconds) 
+  let res_time = result.entries[0].time * 1000;
+  let height = 0; 
 
-    const updatedPositions = await Cesium.sampleTerrainMostDetailed(terrainProvider, generic_pos);
-    height = res_alt - updatedPositions[0].height; 
+  if(res_alt == null){
+    res_alt = 0; 
+    height = 0; 
   }
+  
+  // if(res_alt == null){
+  //   res_alt = 1; 
+  //   height = 1; 
+  // }
+  // else {
+  //   const terrainProvider = await Cesium.createWorldTerrainAsync(); 
+  //   const generic_pos = [
+  //     Cesium.Cartographic.fromDegrees(first_pos.long, first_pos.lat, 0)
+  //   ]; 
+
+  //   const updatedPositions = await Cesium.sampleTerrainMostDetailed(viewer.terrainProvider, generic_pos);
+  //   height = res_alt - updatedPositions[0].height; 
+  // }
   let res_speed = result.entries[0].speed; 
   let res_course = result.entries[0].course; 
 
@@ -43,5 +51,7 @@ export async function aprs_get_pos(id){
     "height": height, 
     "speed": res_speed, 
     "course": res_course,
+    "lasttime": res_lasttime, 
+    "time": res_time
   }
 }
